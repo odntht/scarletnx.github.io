@@ -149,8 +149,9 @@
         form = B.parse(text, $("id").value);
         extras = { eret: keys.eret, others: keys.others };
         if (B.LAYOUTS.indexOf(keys.layout) >= 0) $("layout").value = keys.layout;
-        $("base").value = keys.base === "yorha" || (!keys.base && (keys.layout === "menu" || keys.layout === "loading"))
-            ? "yorha" : "default";
+        $("base").value = B.builtin(keys.base) ? keys.base
+            : !keys.base && (keys.layout === "menu" || keys.layout === "loading") ? "yorha" : "default";
+        formatNote(text);
         fields.forEach(function (entry) { show(entry, B.get(form, entry.field.path)); });
         notes();
         save();
@@ -167,11 +168,109 @@
         save();
     }
 
+    // what a file's [theme] format means here (README.md, Theme formats)
+    function formatNote(text) {
+        var n = B.formatOf(text);
+        $("format-note").textContent = n > B.FORMAT ? "This file is of theme format " + n + ", newer than this " +
+            "builder's (" + B.FORMAT + "): the keys it knows read as here, the others are kept as they are."
+            : n < B.FORMAT ? "This file is of theme format " + n + "; the form writes it in format " + B.FORMAT + "."
+            : "";
+    }
+
+    // ---- ScarletNX's themes: main's src/gui/themes, else the copies in themes.js ----
+
+    var THEMES_API = "https://api.github.com/repos/scarletnx/ScarletNX/contents/src/gui/themes?ref=main";
+    var THEMES_RAW = "https://raw.githubusercontent.com/scarletnx/ScarletNX/main/src/gui/themes/";
+    function themeName(id) { return (B.BUILTINS[id].name || id) + " (" + id + ")"; }
+    function fillBase() {
+        var select = $("base"), was = select.value;
+        while (select.firstChild) select.removeChild(select.firstChild);
+        B.themeIds().forEach(function (id) {
+            var o = document.createElement("option");
+            o.value = id;
+            o.textContent = themeName(id);
+            select.appendChild(o);
+        });
+        select.value = B.builtin(was) ? was : "default";
+    }
+    var gallery = [];
+    function buildGallery() {
+        var root = $("gallery"), wide = window.innerWidth >= 1320;
+        while (root.firstChild) root.removeChild(root.firstChild);
+        gallery = [];
+        B.themeIds().forEach(function (id) {
+            var t = B.builtin(id), head = document.createElement("h3"), table = document.createElement("table");
+            var body = table.createTBody(), row = body.insertRow(), canvases = [];
+            head.textContent = t.name || id;
+            root.appendChild(head);
+            ["menu", "run"].forEach(function (view, i) {
+                var canvas = document.createElement("canvas"), cell = (i && !wide ? body.insertRow() : row).insertCell();
+                canvas.width = 640;
+                canvas.height = 400;
+                canvas.textContent = (view === "menu" ? "The menu" : "A run") + " in " + (t.name || id);
+                cell.appendChild(canvas);
+                canvases.push({ canvas: canvas, view: view });
+            });
+            root.appendChild(table);
+            var p = document.createElement("p"), button = document.createElement("button");
+            button.type = "button";
+            button.textContent = "Start from " + (t.name || id);
+            button.addEventListener("click", function () {
+                $("base").value = id;
+                startFrom(id);
+                status("Started from " + themeName(id) + ".");
+                $("file").scrollIntoView();
+            });
+            p.appendChild(button);
+            p.appendChild(document.createTextNode(" by " + (t.author || "?") + ", src/gui/themes/" + id + "/theme.ini"));
+            root.appendChild(p);
+            gallery.push({ id: id, canvases: canvases });
+        });
+    }
+    function drawGallery(ms) {
+        gallery.forEach(function (g) {
+            var t = B.BUILTINS[g.id];
+            g.canvases.forEach(function (c) {
+                var s = B.sampleState(c.view, $("phone").checked), now = 1000 + ms;
+                if (!c.surface) c.surface = new B.Surface(640, 400);
+                s.scale = 1;
+                if (c.view === "run") s.runAt = now - (ms % (B.RUN_END + 1000));
+                B.render(c.surface, t, s, now);
+                c.canvas.getContext("2d").putImageData(new ImageData(c.surface.px, 640, 400), 0, 0);
+            });
+        });
+    }
+    function useThemes(texts, from) {
+        B.setThemes(texts);
+        fillBase();
+        buildGallery();
+        $("themes-from").textContent = from;
+    }
+    // main's folders and files, as bytes: a theme.ini is read as the GUI reads it, a byte order mark included
+    function fetchThemes() {
+        fetch(THEMES_API).then(function (r) { return r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status)); })
+            .then(function (list) {
+                return Promise.all(list.filter(function (e) { return e.type === "dir"; }).map(function (e) {
+                    return fetch(THEMES_RAW + encodeURIComponent(e.name) + "/theme.ini").then(function (r) {
+                        return r.ok ? r.arrayBuffer() : Promise.reject(new Error("HTTP " + r.status));
+                    }).then(function (b) { return [e.name, new Uint8Array(b)]; });
+                }));
+            })
+            .then(function (pairs) {
+                var texts = {};
+                pairs.forEach(function (p) { texts[p[0]] = p[1]; });
+                if (!texts["default"]) throw new Error("no default theme");
+                useThemes(texts, "From ScarletNX's main, src/gui/themes.");
+            })
+            .catch(function () {
+                $("themes-from").textContent = "ScarletNX's main could not be reached: these are the copies in this " +
+                    "page, which may be older.";
+            });
+    }
+
     // ---- the preview ----
 
-    var surface = null, context = null, icon = new Image();
-    // the program's icon, as the splash draws it
-    icon.src = "https://raw.githubusercontent.com/scarletnx/ScarletNX/refs/heads/main/dist/icons/hicolor/128x128/apps/wimsy.png";
+    var surface = null, context = null;
     function clock() { return (pausedAt === null ? performance.now() : pausedAt) - start - paused; }
     function frame() {
         var scale = Number($("scale").value), canvas = $("screen"), phone = $("phone").checked;
@@ -194,17 +293,19 @@
                 s.runAt = now - (ms % (B.RUN_END + 1000));
         }
         s.scale = scale;
-        var info = B.render(surface, t, s, now);
+        B.render(surface, t, s, now);
         context.putImageData(new ImageData(surface.px, surface.w, surface.h), 0, 0);
-        if (info.icon && icon.complete && icon.naturalWidth)
-            context.drawImage(icon, info.icon.x, info.icon.y, info.icon.size, info.icon.size);
     }
-    var last = 0;
+    var last = 0, lastGallery = 0;
     function tick(time) {
-        // about 30 frames a second, none while the tab is hidden
+        // about 30 frames a second, the gallery 10, none while the tab is hidden
         if (!document.hidden && time - last >= 33) {
             last = time;
             frame();
+            if (time - lastGallery >= 100) {
+                lastGallery = time;
+                drawGallery(Math.floor(clock()));
+            }
         }
         window.requestAnimationFrame(tick);
     }
@@ -237,7 +338,8 @@
         var reader = new FileReader();
         reader.onload = function () {
             // as bytes: the menu reads a byte order mark as the first line's
-            $("ini").value = new TextDecoder("utf-8", { ignoreBOM: true }).decode(new Uint8Array(reader.result));
+            var text = new TextDecoder("utf-8", { ignoreBOM: true }).decode(new Uint8Array(reader.result));
+            $("ini").value = B.upgrade(text);
             fromText();
             status("Opened " + file.name + ".");
         };
@@ -248,6 +350,11 @@
     function init() {
         if (!B) return;
         buildForm();
+        fillBase();
+        buildGallery();
+        fetchThemes();
+        // the splash's icon, inflated by the browser
+        if (window.DecompressionStream) B.loadIcon();
         var draft = load();
         if (draft && typeof draft.text === "string" && draft.text) {
             $("id").value = typeof draft.id === "string" ? draft.id : "mytheme";

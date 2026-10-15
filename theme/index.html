@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>ScarletNX theme builder</title>
     <script src="font.js" defer></script>
+    <script src="themes.js" defer></script>
+    <script src="icon.js" defer></script>
     <script src="builder.js" defer></script>
     <script src="page.js" defer></script>
   </head>
@@ -12,7 +14,8 @@
     <noscript>
       <p>
         <b>This page needs JavaScript.</b> It draws the preview and writes the theme.ini with the scripts beside it
-        (font.js, builder.js, page.js), which load from this site only. Without them, write the file by hand from
+        (font.js, themes.js, icon.js, builder.js, page.js), which load from this site; ScarletNX's own themes come
+        from GitHub when it can be reached. Without them, write the file by hand from
         <a href="https://github.com/scarletnx/ScarletNX/blob/main/docs/GUI.md#themes">docs/GUI.md, Themes</a>.
       </p>
       <hr>
@@ -46,6 +49,15 @@
       YoRHa first, then each folder of themes/. A folder named <code>default</code> or <code>yorha</code> replaces that
       built-in.
     </p>
+
+    <h2 id="themes">ScarletNX's themes</h2>
+    <p>
+      <small>
+        The themes ScarletNX has built in, each folder of its src/gui/themes, drawn as the menu draws them: the menu,
+        and a run. Start from one to make yours. <span id="themes-from">The copies in this page.</span>
+      </small>
+    </p>
+    <div id="gallery"></div>
 
     <h2>Preview</h2>
     <p>
@@ -97,7 +109,7 @@
       </small>
     </p>
 
-    <h2>The file</h2>
+    <h2 id="file">The file</h2>
     <fieldset>
       <legend>theme.ini</legend>
       <table>
@@ -111,8 +123,8 @@
             <td><label for="base">Start from</label></td>
             <td>
               <select id="base">
-                <option value="default">Default</option>
-                <option value="yorha">YoRHa</option>
+                <option value="default">Default (default)</option>
+                <option value="yorha">YoRHa (yorha)</option>
               </select>
             </td>
             <td><small>[theme] base: choosing one starts the form over from that built-in, name and author kept</small></td>
@@ -146,6 +158,7 @@
         <button type="button" id="copy">Copy</button>
         <small id="status"></small>
       </p>
+      <p><small id="format-note"></small></p>
     </fieldset>
 
     <h2>The keys</h2>
