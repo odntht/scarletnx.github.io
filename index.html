@@ -1,5 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>ScarletNX</title>
+  </head>
   <body>
     <center>
       <img src="https://raw.githubusercontent.com/scarletnx/ScarletNX/refs/heads/main/dist/wimsy.svg" alt="Wimsy, the mascot of ScarletNX">
@@ -9,12 +13,15 @@
         <a href="https://github.com/scarletnx/ScarletNX/releases/tag/nightly">Nightly release</a>
         -
         <a href="https://discord.gg/tRTRXXbyjp">Discord</a>
+        -
+        <a href="theme/">Theme builder</a>
         <br>
         <i>
           If a Switch is an ARM64-verse.<br>
           Then ScarletNX is FEX but in reverse.<br>
         </i>
         <br>
+        <!-- [html-validate-disable-next element-permitted-content -- the paragraph sits in the heading, drawn in its letters] -->
         <p>
           ScarletNX is a static recompiler for Switch and Linux ARM programs.<br>
           Runs on FreeBSD, Android, Windows, Linux, Solaris, NetBSD, OpenBSD, DragonFlyBSD, and AIX!<br>
@@ -24,8 +31,22 @@
           We offer the following CI images:<br>
           <a href="https://github.com/scarletnx/ScarletNX/releases/download/nightly/ScarletNX-windows-x86_64.zip">Windows x86_64</a><br>
           <a href="https://github.com/scarletnx/ScarletNX/releases/download/nightly/ScarletNX-x86_64.AppImage">Linux x86_64</a><br>
+          <a href="https://github.com/scarletnx/ScarletNX/releases/download/nightly/ScarletNX-aarch64.AppImage">Linux aarch64</a><br>
+          <a href="https://github.com/scarletnx/ScarletNX/releases/download/nightly/ScarletNX-android.apk">Android (arm64, x86_64)</a><br>
         </p>
       </h2>
+      <p>
+        <b>Windows:</b> unzip ScarletNX-windows-x86_64.zip and run <code>bin\scarletnx-gui.exe</code>, the menu.<br>
+        <b>Linux:</b> <code>chmod +x ScarletNX-x86_64.AppImage</code> (ScarletNX-aarch64.AppImage on ARM64), then run
+        it: started bare, it opens the menu.<br>
+        <b>Android 5.0 and up:</b> install ScarletNX-android.apk and allow it access to files; it works in
+        <code>/sdcard/ScarletNX</code>.<br>
+        <b>Keys:</b> encrypted dumps need your <code>prod.keys</code>, in <code>~/.switch/</code>
+        (<code>%USERPROFILE%\.switch\</code> on Windows) or in the data folder (<code>~/.local/share/scarletnx</code>,
+        <code>%APPDATA%\scarletnx</code>). The menu's Setup device keys copies a dropped one to <code>.switch</code>; on
+        Android it opens the file picker. Decrypted dumps and NROs need none.<br>
+        <b>Themes:</b> dress the menu with the <a href="theme/">theme builder</a>.
+      </p>
     </center>
   </body>
 </html>
