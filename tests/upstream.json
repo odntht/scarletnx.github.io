@@ -1,5 +1,5 @@
 {
- "commit": "2717cea9935cd11f774da38f3c0f05632dec326c",
+ "commit": "30f4f1fe0e4abf14782f6cf25457e2d325420d45",
  "parts": {
   "src/gui/theme.h": "10fdef703ae76c7afeba7a0708ffcfb9b861bb3e36901a3837c76a2a1d89350b",
   "src/gui/theme.c": "1b801125314397a6f313705c782eab0e494a222eb0c1dc132c446fc58e6e0b8c",
@@ -8,7 +8,7 @@
   "gui_vga_font": "b7004a9ab74ee89eb5fdae098f8b53f3977560148fca9d2746e296b1067b56ce",
   "gui_codepage": "bbe81f96cf648f52468edc838939d82d9ce42a29ffecab4a688ba6a6a5da2bc7",
   "gui_glyph": "d0fc26f28cab310ea197395d6d5e721799112ab8a74c2b968dfa140a41988ad2",
-  "gui_setting_description": "5a0fce9700067183a4c6e9f628781521527236acec31e585596ea7f5abe22f90",
+  "gui_setting_description": "13dc23f946c5194ba9590f86de415705f447700925f8f70e67dd256e003d4dde",
   "gui_slide": "7f62082e0edc3c682ca1364e2c28cd101e8c674e4182e1cff4636b4bc5c23105",
   "gui_browser_pages": "917372ab0e4c8f726456751592e9d0dc9866f199dae5dda781cd10376853abcf",
   "gui_browser_items": "b1a7291bb3c8b51503068f7985d5d7a4218677c6363e266d28ad3afbcbca07a3",
@@ -59,6 +59,6 @@
   "render": "bfaf52b240e24a18ecbf6b7c80342e24f819c72830bc885fa2992f3f3b8147fd",
   "leave_run": "4a58891f5fc4c34408c26ac2dda88ca68283e65af0238a4e53719b5717501f51",
   "launch": "fd5331886a7076f96d29c489dbeeb86e1b7460d03c9910f0e12e0ede07bf61aa",
-  "initialize": "88b217c628fad7d1f09c2f58e7d3a9b83be8100b805fbae28e2496a56c3e4cbd"
+  "initialize": "ad239cd4f3f34bf4114406ddd5bade1ca8652a382ba9d0c4dc5334fc11d27554"
  }
 }

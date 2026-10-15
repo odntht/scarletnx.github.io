@@ -1,4 +1,4 @@
-// The ScarletNX program's icon, the one the GUI's splash shows: dist/icons/hicolor/128x128/apps/wimsy.png at 2717cea,
+// The ScarletNX program's icon, the one the GUI's splash shows: dist/icons/hicolor/128x128/apps/wimsy.png at 30f4f1f,
 // as it is, base64. Made by node tests/upstream.js --update; tests/upstream.test.js checks it against main
 var SNX_ICON_PNG = "" +
     "iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAW7ElEQVR42u1dB3iUVdamqLj/iihSlB8FRBAba0EUBMUGCuv+ov4W3MUCLsqKjyjI" +

@@ -1,4 +1,4 @@
-// ScarletNX's built-in themes, its src/gui/themes/<id>/theme.ini as they are at 2717cea: the page's
+// ScarletNX's built-in themes, its src/gui/themes/<id>/theme.ini as they are at 30f4f1f: the page's
 // own copies, for when ScarletNX's main cannot be fetched. Made by node tests/upstream.js --update; tests/upstream.test.js
 // checks them against main
 var SNX_THEMES = {

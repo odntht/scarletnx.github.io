@@ -846,11 +846,11 @@
         switch (item) {
             case FULLSCREEN: return say.fullscreen;
             case TOUCH: return "The game's touch screen: fingers, the mouse too, or off";
-            case CONTROLS: return "A pad on the screen; the game's menu edits it";
+            case CONTROLS: return "A pad on the screen. The game's menu edits it";
             case GCCJIT: return "Program was not compiled with libgccjit";
             case GDBSTUB: return "Enables gdbstub on port 1234";
             case THEME: return "Built-in themes, then each themes/<name>/theme.ini";
-            case TEXT: return "Bigger letters scroll the menu; Auto fits the screen";
+            case TEXT: return "Bigger letters scroll the menu. Auto fits the screen";
             case LOG: return say.log;
             default: return "";
         }

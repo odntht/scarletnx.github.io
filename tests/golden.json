@@ -1,5 +1,5 @@
 {
- "gui": "ScarletNX 2717cea (main 46122d0 with #217): src/gui/main.c on SDL's software renderer (gui-ref)",
+ "gui": "ScarletNX 30f4f1fe: src/gui/main.c on SDL's software renderer (gui-ref)",
  "frames": {
   "default-menu-1000-2x": "2ea8041511203a2a477e1f05bf6da3fc8128f3dfd8e7769d370e0f7b989dc368",
   "default-menu-1000-1x": "1a88de81553f6899676608942adc38cdc61b647ce060114bb198713cabad7f82",
