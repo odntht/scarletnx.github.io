@@ -15,7 +15,8 @@ test("builder.js draws every frame as the GUI drew it", function () {
     assert.deepEqual(differ.map(function (c) { return c.name; }), [],
         "theme/builder.js no longer draws these frames as " + golden.gui + " drew them. If builder.js changed, " +
         "make it draw them as before; if the GUI's drawing changed (upstream.test.js says which part), builder.js " +
-        "follows it and the frames are drawn again from the new GUI (gui-ref, see golden.json's gui) into golden.json.");
+        "follows it, and the new GUI draws the frames into golden.json again: tools/gui-ref/README.md has the " +
+        "commands, from a ScarletNX checkout and build tree.");
 });
 
 test("golden.json has every frame and only those", function () {
