@@ -16,6 +16,9 @@
         return out;
     })(fontData.SNX_FONT);
     var CODEPAGE = fontData.SNX_CODEPAGE;
+    // the program's icon for the splash (icon.js), decoded by loadIcon
+    var iconPng = typeof SNX_ICON_PNG !== "undefined" ? SNX_ICON_PNG
+        : typeof module !== "undefined" ? require("./icon.js").SNX_ICON_PNG : null;
     // the GUI computes in float: every step of its arithmetic rounds to one here
     var f = Math.fround;
 
@@ -77,7 +80,7 @@
     var SCREENS = ["menu", "games", "keys", "compiling", "loading"];
     function blank() {
         return {
-            id: "", name: "", author: "", format: 1,
+            id: "", name: "", author: "", format: 0,
             colors: { page: "#000000", ink: "#000000", soft: "#000000", focus: "#000000", active: "#000000",
                       failure: "#000000", dim: "#000000", warning: "#000000" },
             head: "plain", head_rule: false, footer: "plain", footer_rule: false,
@@ -95,37 +98,23 @@
         };
     }
     function clone(t) { return JSON.parse(JSON.stringify(t)); }
-    // theme.c's builtins[]
-    var BUILTINS = (function () {
-        var d = blank();
-        d.id = "default"; d.name = "Default"; d.author = "ScarletNX";
-        d.colors = { page: "#000000", ink: "#DCDCDC", soft: "#A0AAB4", focus: "#FFFF00", active: "#FF55FF",
-                     failure: "#FF0000", dim: "#505050", warning: "#FFAA00" };
-        d.marker = "- ";
-        d.run_colors = { page: "#000000", ink: "#DCDCDC", soft: "#A0AAB4", dim: "#505050", failure: "#FF0000",
-                         warning: "#FFAA00" };
-        d.typing_ms = 25; d.blink_ms = 500;
-        d.splash = { page: "#000000", ms: 1000, chance: 100 };
-        d.prompt = { align: "center", open: "[ ", close: " ]", blink: true,
-                     lines: { keys: true, done: false, failed: false, aborting: false } };
-        var y = blank();
-        y.id = "yorha"; y.name = "YoRHa"; y.author = "ScarletNX";
-        y.colors = { page: "#DAD6BE", ink: "#45413A", soft: "#8A8676", focus: "#45413A", active: "#8A6A2A",
-                     failure: "#A5473C", dim: "#B4B09C", warning: "#8A6A2A" };
-        y.head = "bar"; y.footer = "bar"; y.head_rule = true; y.focus_bar = true;
-        y.marker = "\u25A0 ";
-        y.title = { menu: "SCARLETNX  /  MENU", games: "SCARLETNX  /  GAMES", keys: "SCARLETNX  /  KEYS",
-                    compiling: "COMPILING", loading: "BOOTING" };
-        y.run = "steps";
-        y.run_colors = { page: "#141416", ink: "#E6E4DC", soft: "#8E8C86", dim: "#3E3E40", failure: "#D2463A",
-                         warning: "#D9B24A" };
-        y.texture = true; y.detailed = true; y.ring = "right"; y.line_in = "typing"; y.typing_sync = true;
-        y.fade_in_ms = 250; y.fade_out_ms = 500; y.line_in_ms = 220; y.typing_ms = 5; y.blink_ms = 500;
-        y.scroll_ms = 120;
-        y.splash = { page: "#DAD6BE", ms: 1000, chance: 25 };
-        y.prompt = clone(d.prompt);
-        return { "default": d, yorha: y };
-    })();
+    // The built-ins: ScarletNX's src/gui/themes/<id>/theme.ini, each read over nothing (theme.c's builtins_read), its
+    // file setting every key. The page's own copies (themes.js) until setThemes is given main's
+    var BUILTINS = {}, BUILTIN_TEXTS = {};
+    function setThemes(texts) {
+        var ids = Object.keys(texts).filter(function (id) { return id !== "default"; }).sort();
+        if (Object.prototype.hasOwnProperty.call(texts, "default")) ids.unshift("default");
+        Object.keys(BUILTINS).forEach(function (id) { delete BUILTINS[id]; delete BUILTIN_TEXTS[id]; });
+        ids.forEach(function (id) {
+            var t = blank();
+            t.id = id;
+            entries(binary(texts[id])).forEach(function (e) { apply(t, e[0], e[1], e[2], false); });
+            BUILTINS[id] = t;
+            BUILTIN_TEXTS[id] = texts[id];
+        });
+        return ids;
+    }
+    function themeIds() { return Object.keys(BUILTINS); }
     function builtin(id) { return Object.prototype.hasOwnProperty.call(BUILTINS, id) ? clone(BUILTINS[id]) : null; }
 
     // The reading of one value (bytes), null when it cannot be read: the base's value stays
@@ -277,6 +266,21 @@
 
     // ---- writing: every key, so the file reads the same over any base ----
 
+    // ---- formats: what [theme] format = N promises (README.md, "Theme formats") ----
+
+    // the format this builder writes, the GUI's GUI_THEME_FORMAT
+    var FORMAT = 1;
+    // CONVERT[n]: a format n file's text as format n + 1 says the same, for the keys whose meaning changed. None yet:
+    // the first change of format adds one, and ScarletNX's tests/gui_themes/<n> still read the same through it
+    var CONVERT = {};
+    function formatOf(input) { return parse(input, "").format; }
+    // an older format's file in the newest one this builder writes; a newer one as it is
+    function upgrade(text) {
+        var n = formatOf(text);
+        while (n < FORMAT && CONVERT[n]) text = CONVERT[n++](text);
+        return text;
+    }
+
     // quotes keep white space at either end, and a value that is itself quoted
     function quote(v) {
         return /^[ \t]|[ \t\r]$/.test(v) || (v.length >= 2 && v[0] === '"' && v[v.length - 1] === '"') ? '"' + v + '"' : v;
@@ -285,8 +289,9 @@
     var LAYOUTS = ["plain", "debug", "loading", "menu", "skip"];
     function serialize(t, opts) {
         opts = opts || {};
-        var base = opts.base === "yorha" ? "yorha" : "default";
-        var layout = LAYOUTS.indexOf(opts.layout) >= 0 ? opts.layout : base === "yorha" ? "menu" : "debug";
+        var base = builtin(opts.base) ? opts.base : "default";
+        var own = BUILTIN_TEXTS[base] ? fileKeys(BUILTIN_TEXTS[base]).layout : null;
+        var layout = LAYOUTS.indexOf(opts.layout) >= 0 ? opts.layout : LAYOUTS.indexOf(own) >= 0 ? own : "debug";
         // ErET's loading layout names no base: it starts from YoRHa, the menus keep YoRHa's colours and [colors] are
         // the loading screen's, as both programs read it
         var loading = layout === "loading";
@@ -298,14 +303,15 @@
         line("; know are left for others (rEden's ErET reads the same file). A comment takes a line of its own. docs/GUI.md");
         line("; describes every key. Made with https://scarletnx.github.io/theme/");
         line("[theme]");
-        kv("format", String(t.format || 1));
+        // a newer format's file keeps its number: the keys of it this builder does not know are kept as they are
+        kv("format", String(Math.max(t.format || FORMAT, FORMAT)));
         kv("name", quote(t.name));
         kv("author", quote(t.author));
         line("; ErET's drawing for it (plain | debug | loading | menu | skip); a base when no base names one");
         kv("layout", layout);
         if (loading) line("; no base: ErET's loading layout starts from yorha, the menus in its colours");
         else {
-            line("; default | yorha");
+            line("; the built-in it starts from: default | yorha, or another folder of ScarletNX's src/gui/themes");
             kv("base", base);
         }
         line("");
@@ -683,6 +689,126 @@
         this.lines([[x, y], [x1, y], [x1, y1], [x, y1], [x, y]], c);
     };
 
+    // ---- the program's icon: its PNG's pixels, as SDL_LoadPNG gives them ----
+
+    var ICON = null;
+    function base64Bytes(b64) {
+        var raw = typeof atob === "function" ? atob(b64) : Buffer.from(b64, "base64").toString("binary");
+        var out = new Uint8Array(raw.length);
+        for (var i = 0; i < raw.length; ++i) out[i] = raw.charCodeAt(i);
+        return out;
+    }
+    // an 8-bit RGBA PNG's size and its image data, still deflated
+    function pngData(png) {
+        var w = 0, h = 0, parts = [], at = 8, total = 0;
+        while (at + 8 <= png.length) {
+            var n = (png[at] << 24 | png[at + 1] << 16 | png[at + 2] << 8 | png[at + 3]) >>> 0;
+            var type = String.fromCharCode(png[at + 4], png[at + 5], png[at + 6], png[at + 7]);
+            if (type === "IHDR") {
+                w = (png[at + 8] << 24 | png[at + 9] << 16 | png[at + 10] << 8 | png[at + 11]) >>> 0;
+                h = (png[at + 12] << 24 | png[at + 13] << 16 | png[at + 14] << 8 | png[at + 15]) >>> 0;
+                if (png[at + 16] !== 8 || png[at + 17] !== 6 || png[at + 20]) throw new Error("the icon is not 8-bit RGBA");
+            }
+            if (type === "IDAT") { parts.push(png.subarray(at + 8, at + 8 + n)); total += n; }
+            at += 12 + n;
+        }
+        var idat = new Uint8Array(total), k = 0;
+        parts.forEach(function (p) { idat.set(p, k); k += p.length; });
+        return { w: w, h: h, idat: idat };
+    }
+    // the rows unfiltered (PNG's five filters) into RGBA
+    function pngPixels(w, h, raw) {
+        var stride = w * 4, out = new Uint8Array(stride * h), j = 0;
+        for (var y = 0; y < h; ++y) {
+            var filter = raw[j++], row = y * stride;
+            for (var x = 0; x < stride; ++x, ++j) {
+                var a = x >= 4 ? out[row + x - 4] : 0, b = y ? out[row - stride + x] : 0;
+                var c = x >= 4 && y ? out[row - stride + x - 4] : 0, v = raw[j];
+                if (filter === 1) v += a;
+                else if (filter === 2) v += b;
+                else if (filter === 3) v += (a + b) >> 1;
+                else if (filter === 4) {
+                    var p = a + b - c, pa = Math.abs(p - a), pb = Math.abs(p - b), pc = Math.abs(p - c);
+                    v += pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
+                }
+                out[row + x] = v & 255;
+            }
+        }
+        return out;
+    }
+    // the icon, its image data inflated by inflate (zlib's, or the browser's DecompressionStream): a promise in the
+    // browser, at once in node
+    function loadIcon(inflate) {
+        if (!iconPng) return null;
+        var png = pngData(base64Bytes(iconPng));
+        function done(raw) { ICON = { w: png.w, h: png.h, rgba: pngPixels(png.w, png.h, raw) }; return ICON; }
+        if (inflate) return done(inflate(png.idat));
+        var stream = new Blob([png.idat]).stream().pipeThrough(new DecompressionStream("deflate"));
+        return new Response(stream).arrayBuffer().then(function (b) { return done(new Uint8Array(b)); });
+    }
+    if (typeof module !== "undefined" && iconPng) loadIcon(function (d) { return new Uint8Array(require("zlib").inflateSync(d)); });
+
+    // SDL's linear stretch (SDL_stretch.c, its SSE2 code, which x86-64 takes): 7-bit weights, the rows first in full,
+    // the columns after, a pixel's centre at 0.5, the edges held
+    function scaler(n, size) {
+        var step = Math.floor(n * 65536 / size), x0 = Math.floor((step * 32768 + 0x8000) / 65536) - 32768;
+        var left = 0, right = 0;
+        for (var i = 0, fp = x0; i < size; ++i, fp += step) {
+            if (fp < 0) ++left;
+            else if ((fp >> 16) > n - 2) ++right;
+        }
+        return { start: x0, step: step, left: left, right: right };
+    }
+    function stretch(src, w, h, dw, dh) {
+        var out = new Uint8Array(dw * dh * 4), sh = scaler(h, dh), sw = scaler(w, dw), fh = sh.start;
+        for (var i = 0; i < dh; ++i, fh += sh.step) {
+            var inside = !(i < sh.left || i > dh - 1 - sh.right);
+            var y0 = inside ? fh >> 16 : i < sh.left ? 0 : h - 1, fy = inside ? (fh >> 9) & 127 : 0;
+            var y1 = inside ? y0 + 1 : y0, fw = sw.start + sw.left * sw.step;
+            for (var j = 0; j < dw; ++j) {
+                var x0, fx;
+                if (j < sw.left) { x0 = 0; fx = 0; }
+                else if (j >= dw - sw.right) { x0 = w - 2; fx = 128; }
+                else { x0 = fw >> 16; fx = (fw >> 9) & 127; fw += sw.step; }
+                for (var k = 0; k < 4; ++k) {
+                    var l = src[(y0 * w + x0) * 4 + k] * (128 - fy) + src[(y1 * w + x0) * 4 + k] * fy;
+                    var r = src[(y0 * w + x0 + 1) * 4 + k] * (128 - fy) + src[(y1 * w + x0 + 1) * 4 + k] * fy;
+                    out[(i * dw + j) * 4 + k] = Math.min(255, (l * (128 - fx) + r * fx) >> 14);
+                }
+            }
+        }
+        return out;
+    }
+    // The icon over the page at x, y, size pixels a side, as the software renderer copies a static texture. At its
+    // own size the texture's RLE blit (SDL_RLEaccel.c): alpha 255 copied, 0 skipped, the others BLIT_TRANSL_888 on the
+    // XRGB window, red and blue in one word. Stretched, SDL_StretchSurface then the AVX2 8888 blit:
+    // (a*s + (255-a)*d + 1) * 257 >> 16
+    Surface.prototype.icon = function (x, y, size) {
+        if (!ICON) return;
+        var same = size === ICON.w && size === ICON.h;
+        var rgba = same ? ICON.rgba : stretch(ICON.rgba, ICON.w, ICON.h, size, size);
+        for (var yy = 0; yy < size; ++yy)
+            for (var xx = 0; xx < size; ++xx) {
+                var px = x + xx, py = y + yy;
+                if (px < 0 || py < 0 || px >= this.w || py >= this.h) continue;
+                var s = (yy * size + xx) * 4, d = (py * this.w + px) * 4, a = rgba[s + 3], k;
+                if (!same)
+                    for (k = 0; k < 3; ++k)
+                        this.px[d + k] = ((a * rgba[s + k] + (255 - a) * this.px[d + k] + 1) * 257) >>> 16;
+                else if (a === 255)
+                    for (k = 0; k < 3; ++k) this.px[d + k] = rgba[s + k];
+                else if (a) {
+                    var s1 = (rgba[s] << 16 | rgba[s + 2]) >>> 0, d1 = (this.px[d] << 16 | this.px[d + 2]) >>> 0;
+                    d1 = (d1 + (Math.imul((s1 - d1) | 0, a) >>> 0 >>> 8)) & 0xff00ff;
+                    var s2 = rgba[s + 1] << 8, d2 = this.px[d + 1] << 8;
+                    d2 = (d2 + (Math.imul((s2 - d2) | 0, a) >>> 0 >>> 8)) & 0xff00;
+                    this.px[d] = d1 >>> 16;
+                    this.px[d + 1] = d2 >>> 8;
+                    this.px[d + 2] = d1 & 0xff;
+                }
+            }
+    };
+
     // ---- what the GUI shows: its words, a sample of games, a run's output ----
 
     var ITEMS = ["Load Switch NSP/XCI/NRO", "Load Linux ARM ELF", "Load 3DS CIA", "Setup device keys", "Fullscreen",
@@ -711,7 +837,8 @@
             keysWait: "Pick prod.keys", done: "Tap to return to menu", abort: "Tap here to abort and return to menu",
             count: "game(s)", fullscreen: "The menu and the games on the whole screen, the system's bars hidden",
             log: "Saves the last run's output and game log to /sdcard/ScarletNX/scarletnx.log, then shares it",
-            home: "/data/data/org.scarletnx/files", cwd: "/sdcard/ScarletNX", phone: true
+            // HOME is the app's files; the working folder /sdcard/ScarletNX, as getcwd names it
+            home: "/data/data/org.scarletnx/files", cwd: "/storage/emulated/0/ScarletNX", phone: true
         }
     };
     // gui_setting_description
@@ -904,10 +1031,11 @@
             });
         }
         if (view === "splash") {
-            // splash_shown: the program's icon, whole steps of its 128 pixels, on the splash page
+            // splash_shown: the program's icon, whole steps of its 128 pixels, in the middle of the splash page
             surface.clear(rgb(t.splash.page));
             var size = 128 * Math.max(1, Math.trunc(Math.min(surface.w, surface.h) / 3 / 128));
-            info.icon = { x: (surface.w - size) / 2, y: (surface.h - size) / 2, size: size };
+            surface.icon(Math.trunc(f((surface.w - size) / 2)), Math.trunc(f((surface.h - size) / 2)), size);
+            info.icon = !!ICON;
             return info;
         }
         surface.clear(C.page);
@@ -1135,11 +1263,15 @@
         else text(1, rows - 1, s.say.abort, R.soft);
     }
 
+    setThemes(typeof SNX_THEMES !== "undefined" ? SNX_THEMES
+        : typeof module !== "undefined" ? require("./themes.js").SNX_THEMES : {});
+
     var api = {
-        BUILTINS: BUILTINS, builtin: builtin, parse: parse, serialize: serialize, fileKeys: fileKeys,
+        BUILTINS: BUILTINS, BUILTIN_TEXTS: BUILTIN_TEXTS, setThemes: setThemes, themeIds: themeIds, builtin: builtin, parse: parse, serialize: serialize, fileKeys: fileKeys,
         utf8Length: utf8Length, drawable: drawable, undrawable: undrawable, glyph: glyph, Steps: Steps,
         Surface: Surface, render: render, sampleState: sampleState, runSoFar: runSoFar, loopState: loopState,
-        loopLength: loopLength, LOOP: { menu: LOOP_MENU, ended: LOOP_ENDED, clock: LOOP_CLOCK }, RUN: RUN, RUN_END: RUN_END, ITEMS: ITEMS, SCREENS: SCREENS, VIEWS: VIEWS, SAY: SAY,
+        FORMAT: FORMAT, CONVERT: CONVERT, formatOf: formatOf, upgrade: upgrade,
+        loadIcon: loadIcon, loopLength: loopLength, LOOP: { menu: LOOP_MENU, ended: LOOP_ENDED, clock: LOOP_CLOCK }, RUN: RUN, RUN_END: RUN_END, ITEMS: ITEMS, SCREENS: SCREENS, VIEWS: VIEWS, SAY: SAY,
         SCHEMA: SCHEMA, LAYOUTS: LAYOUTS, get: get, set: set, check: check, integer: integer, colour: colour
     };
     if (typeof module !== "undefined") module.exports = api;
