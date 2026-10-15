@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ScarletNX theme builder</title>
+    <script src="font.js" defer></script>
+    <script src="builder.js" defer></script>
+    <script src="page.js" defer></script>
+  </head>
+  <body>
+    <noscript>
+      <p>
+        <b>This page needs JavaScript.</b> It draws the preview and writes the theme.ini with the scripts beside it
+        (font.js, builder.js, page.js), which load from this site only. Without them, write the file by hand from
+        <a href="https://github.com/scarletnx/ScarletNX/blob/main/docs/GUI.md#themes">docs/GUI.md, Themes</a>.
+      </p>
+      <hr>
+    </noscript>
+    <center>
+      <h1>ScarletNX theme builder</h1>
+      <p>
+        <a href="../">ScarletNX</a>
+        -
+        <a href="https://github.com/scarletnx/ScarletNX/blob/main/docs/GUI.md#themes">the keys, in docs/GUI.md</a>
+      </p>
+      <p><small>This page needs JavaScript: it draws the preview and writes the file.</small></p>
+    </center>
+
+    <p>
+      A theme dresses ScarletNX's menu (scarletnx-gui, the program the AppImage, the Windows zip and the Android app
+      open): its colours, its head and footer, and how a run looks, as a console or as a loading screen. It is one
+      file, <b>theme.ini</b>, in a folder named after the theme:
+      <b>themes/<i>id</i>/theme.ini</b>, either
+    </p>
+    <ul>
+      <li>
+        in the menu's data folder: <code>~/.local/share/scarletnx</code> on Linux, <code>%APPDATA%\scarletnx</code>
+        on Windows, <code>/sdcard/ScarletNX</code> on Android (a copy that keeps a <code>games/</code> folder beside
+        the AppImage or the zip's programs uses that folder instead), or
+      </li>
+      <li>beside the menu's program: <code>bin\themes</code> in the Windows zip.</li>
+    </ul>
+    <p>
+      Then pick it with the menu's <b>Theme</b> item: each press goes to the next theme, the built-in Default and
+      YoRHa first, then each folder of themes/. A folder named <code>default</code> or <code>yorha</code> replaces that
+      built-in.
+    </p>
+
+    <h2>Preview</h2>
+    <p>
+      <canvas id="screen" width="1280" height="800">The preview needs a browser that draws on a canvas.</canvas>
+    </p>
+    <table>
+      <tbody>
+        <tr>
+          <td><label for="view">Screen</label></td>
+          <td>
+            <select id="view">
+              <option value="live">Live: the menu, a run, ESC, the menu again</option>
+              <option value="menu">Menu</option>
+              <option value="load">Menu, the load options open</option>
+              <option value="games">games/ list</option>
+              <option value="keys">Setup device keys</option>
+              <option value="run">A run, over and over</option>
+              <option value="ended">A run ended</option>
+              <option value="failed">A run failed</option>
+              <option value="ask">Abort? (the question a phone asks)</option>
+              <option value="aborting">A run being aborted</option>
+              <option value="splash">The boot's splash</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td><label for="scale">Size</label></td>
+          <td>
+            <select id="scale">
+              <option value="2">2x: 1280 x 800, the menu's window at Text size Auto</option>
+              <option value="1">1x: 640 x 400</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td><label for="phone">A phone's words</label></td>
+          <td><input type="checkbox" id="phone"> <small>what the Android app says: tap, Back, the file picker</small></td>
+        </tr>
+        <tr>
+          <td><label for="play">Play</label></td>
+          <td><input type="checkbox" id="play" checked> <small>the clock: blinking, turning, typing, fading</small></td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      <small>
+        Drawn the way the menu draws on SDL's software renderer, with its VGA font: 80 x 25 cells. Characters the
+        font lacks show as ?, as they do there.
+      </small>
+    </p>
+
+    <h2>The file</h2>
+    <fieldset>
+      <legend>theme.ini</legend>
+      <table>
+        <tbody>
+          <tr>
+            <td><label for="id">Theme id</label></td>
+            <td><input type="text" id="id" size="24" value="mytheme"></td>
+            <td><small id="id-note">the folder's name</small></td>
+          </tr>
+          <tr>
+            <td><label for="base">Start from</label></td>
+            <td>
+              <select id="base">
+                <option value="default">Default</option>
+                <option value="yorha">YoRHa</option>
+              </select>
+            </td>
+            <td><small>[theme] base: choosing one starts the form over from that built-in, name and author kept</small></td>
+          </tr>
+          <tr>
+            <td><label for="layout">ErET layout</label></td>
+            <td>
+              <select id="layout">
+                <option value="debug">debug</option>
+                <option value="plain">plain</option>
+                <option value="menu">menu</option>
+                <option value="loading">loading</option>
+                <option value="skip">skip</option>
+              </select>
+            </td>
+            <td>
+              <small>
+                [theme] layout, for rEden's ErET, which reads the same file. loading: no base, YoRHa's menus, and
+                [colors] become the loading screen's
+              </small>
+            </td>
+          </tr>
+          <tr>
+            <td><label for="open">Open a theme.ini</label></td>
+            <td colspan="2"><input type="file" id="open" accept=".ini,text/plain"></td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        <button type="button" id="download">Download theme.ini</button>
+        <button type="button" id="copy">Copy</button>
+        <small id="status"></small>
+      </p>
+    </fieldset>
+
+    <h2>The keys</h2>
+    <p>
+      <small>
+        Every key the menu reads, by section. A value the menu cannot take (too long, a colour that is not #RRGGBB)
+        is written as it is and leaves the base's value; the note beside it says so, and the preview shows what the
+        menu would.
+      </small>
+    </p>
+    <div id="form"></div>
+
+    <h2>theme.ini</h2>
+    <p>
+      <small>
+        The form writes this, and an edit here fills the form. Keys the menu does not read are kept, for the programs
+        that do. The draft stays in this browser.
+      </small>
+    </p>
+    <p>
+      <label for="ini">theme.ini</label><br>
+      <textarea id="ini" rows="40" cols="110" spellcheck="false"></textarea>
+    </p>
+  </body>
+</html>
